@@ -1,0 +1,60 @@
+---
+- name: Jira installation from zip file
+  hosts: <host>
+  gather_facts: true
+  become: true
+  vars_prompt:
+   name: jr_vs
+   prompt: "Enter Jira Software version you want install"
+   private: false
+  vars:
+   jrurl: "https://www.atlassian.com/software/jira/downloads/binary/atlassian-jira-software-{{jr_vs}}.tar.gz"
+   jira_home: /var/atlassian/application-data/jira
+  tasks:
+   - name: "Creat account for Jira Software"
+     user:
+      name: jira
+      comment: Account for running Jira Software
+      shell: /bin/bash
+   - debug:
+      var: ansible_os_family
+   - name: "Install jdk java version 1.8.0 in Debian/Ubuntu..."
+     package:
+      name: openjdk-8-jre-headless
+      state: present
+     when: ansible_os_family=="Debian"
+   - name: "Install Java in CentOs/RedHat......"
+     package:
+      name: java-1.8.0-openjdk
+      state: present
+     when: ansible_os_family=="RedHat"
+   - name: "Download Jira Zip file....."
+     get_url:
+      url: "{{jrurl}}"
+      dest: /opt/atlassian-jira-software-{{jr_vs}}.tar.gz
+      mode: 0755
+   - name: "EXtract jira zip file......"
+     unarchive:
+      src: "/opt/atlassian-jira-software-{{jr_vs}}.tar.gz"
+      dest: /opt/
+      remote_src: yes
+      owner: jira
+      group: jira
+   - name: "Create Jira home directory and set permission"
+     file:
+      path: "{{jira_home}}"
+      state: directory
+      owner: jira
+      group: jira
+      recurse: yes
+      mode: 0755
+   - name: "create home directory and Rename folder name....."
+     shell: mv "/opt/atlassian-jira-software-{{jr_vs}}-standalone" /opt/atlassian
+     environment:
+      JIRA_HOME: "{{jira_home}}"
+   - name: "Replacing jira home directory file"
+     template:
+      src: jira-application.properties.j2
+      dest: /opt/atlassian/atlassian-jira/WEB-INF/classes/jira-application.properties
+   - name: "Start jira Service........"
+     shell: nohup /opt/atlassian/bin/start-jira.sh &

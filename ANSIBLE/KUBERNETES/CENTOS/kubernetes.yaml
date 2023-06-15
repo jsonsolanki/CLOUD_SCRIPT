@@ -1,0 +1,58 @@
+---
+ - name: Kubernetes Installation
+   hosts: <hosts>
+#   gather_facts: false
+   tasks:
+    - name: "Add Repolist for kubernetes"
+      yum_repository:
+       name: kubernetes-el7-x86_64
+       description: CentOs-7 - Kubernetes Repo 
+       baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+       gpgcheck: no
+       enabled: yes
+       gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+    - name: "Add Repolist for Docker"
+      shell: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+      args:
+       creates: /etc/yum.repos.d/docker.repo
+    - name: "Prerequire Installation"
+      package:
+       name:
+        - lvm2
+        - device-mapper-persistent-data
+        - yum-utils
+        - docker-ce
+        - containerd.io
+#        - kubelet
+#        - kubeadm
+#        - kubectl
+       state: present
+    - name: Install Kubernets with Specific Version
+      package:
+       name:
+        - kubelet=1.24.0-00
+        - kubeadm=1.24.0-00
+        - kubectl=1.24.0-00
+    - name: "Start Docker and kubernetes Services"
+      service:
+       name: "{{ item }}"
+       state: restarted
+       enabled: yes
+      with_items:
+        - docker
+        - kubelet
+        - containerd
+    - name: Add Docker Driver Daemon
+      get_url:
+       url: https://github.com/jsonsolanki/commanConfig/blob/4bf72a3b2b8929e67c707311e8154df41348ebf5/deamon.json
+       dest: /etc/docker/deamon.json
+       mode: 755
+    - name: Modifing Container configuration
+      shell: mkdir -p /etc/containerd && containerd config default > /etc/containerd/config.toml
+    - name: Restart Docker service 
+      service:
+       name: "{{ item }}"
+       state: restarted
+      with_items:
+       - docker
+       - containerd

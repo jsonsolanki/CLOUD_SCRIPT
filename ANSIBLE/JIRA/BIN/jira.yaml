@@ -1,0 +1,25 @@
+---
+ - name: Install Jira via bin file
+   hosts: <host>
+   gather_facts: false
+   become: true
+   vars_prompt:
+   - name: jr_vr
+     prompt: "Enter Jira Version"
+     private: false
+   vars:
+    jrurl: "https://www.atlassian.com/software/jira/downloads/binary/atlassian-jira-software-{{jr_vr}}-x64.bin"
+   tasks:
+   - get_url:
+      url: "{{jrurl}}"
+      dest: "/opt/atlassian-jira-software-{{jr_vr}}-x64.bin"
+      mode: 755
+   - name: "Start Installation of Jira"
+     expect:
+      command: "/opt/atlassian-jira-software-{{jr_vr}}-x64.bin"
+      responses:
+       (?i)Press: y
+       (?i)ok: o
+       (?i)Express: 1
+       (?i)Install: i
+       (?i)Yes: y

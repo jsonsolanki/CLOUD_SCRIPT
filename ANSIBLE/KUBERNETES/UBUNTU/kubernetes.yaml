@@ -1,0 +1,62 @@
+---
+- name: Installation Of Kubernetes on Ubuntu
+  hosts: <host>
+  become: yes
+  tasks:
+   - name: Add key of kubernetes
+     apt_key:
+      url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+      keyring: /usr/share/keyrings/kubernetes-archive-keyring.gpg
+   - name: Add Key for docker
+     apt_key:
+      url: https://download.docker.com/linux/ubuntu/gpg
+   - name: Add Repository of Kubernetes and Docker
+     apt_repository:
+      repo: deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main
+      state: present
+   - name: Add Docker Repository 
+     apt_repository:
+      state: present
+      repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
+   - name: Update apt packege
+     apt:
+      update_cache: yes
+      cache_valid_time: 3600
+   - name: Install Docker and require software
+     apt:
+      name:
+       - apt-transport-https
+       - ca-certificates
+       - curl
+       - gnupg-agent
+       - software-properties-common
+       - docker-ce
+       - docker-ce-cli
+       - containerd.io
+#       - kubelet
+#       - kubeadm
+#       - kubectl
+      state: latest
+      enabled: yes
+   - name: Install Kubernets with Specific Version
+     apt:
+      name:
+       - kubelet=1.24.0-00
+       - kubeadm=1.24.0-00
+       - kubectl=1.24.0-00
+   - name: Add Container config file
+     shell: mkdir -p /etc/containerd && mkdir -p /etc/docker && containerd config default > /etc/containerd/config.toml
+   - name: Add docker driver
+     get_url:
+      url: https://github.com/jsonsolanki/commanConfig/blob/4bf72a3b2b8929e67c707311e8154df41348ebf5/deamon.json
+      dest: /etc/docker/deamon.json
+      mode: 0755
+   - name: "Start Docker and kubernetes Services"
+     service:
+      name: "{{ item }}"
+      state: restarted
+      enabled: yes
+     with_items:
+       - docker
+       - kubelet
+       - containerd
